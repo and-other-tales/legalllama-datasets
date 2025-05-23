@@ -10,3 +10,10 @@ pandas>=1.5.0
 numpy>=1.21.0
 pathlib2>=2.3.0
 typing-extensions>=4.0.0
+
+# Database dependencies for multi-database ingestion
+pymongo>=4.0.0
+neo4j>=5.0.0
+pinecone-client>=2.2.0
+sentence-transformers>=2.2.0
+python-dotenv>=1.0.0
