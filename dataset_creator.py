@@ -15,7 +15,63 @@ from typing import List, Dict, Iterator, Optional, Union
 import re
 from datasets import Dataset, DatasetDict, load_dataset
 from transformers import AutoTokenizer
+import subprocess
 import torch
+
+def setup_pytorch():
+    """Setup PyTorch with CUDA if available, otherwise CPU"""
+    def check_cuda_available():
+        try:
+            result = subprocess.run(['nvidia-smi'], capture_output=True, text=True)
+            return result.returncode == 0
+        except FileNotFoundError:
+            return False
+    
+    def install_pytorch_with_cuda():
+        try:
+            subprocess.run([
+                sys.executable, '-m', 'pip', 'install', 
+                'torch', 'torchvision', 'torchaudio', 
+                '--index-url', 'https://download.pytorch.org/whl/cu118'
+            ], check=True)
+            return True
+        except subprocess.CalledProcessError:
+            return False
+    
+    def install_pytorch_cpu():
+        try:
+            subprocess.run([
+                sys.executable, '-m', 'pip', 'install', 
+                'torch', 'torchvision', 'torchaudio', 
+                '--index-url', 'https://download.pytorch.org/whl/cpu'
+            ], check=True)
+            return True
+        except subprocess.CalledProcessError:
+            return False
+    
+    try:
+        # Test if torch._C is available
+        import torch._C
+        print("PyTorch is already properly installed")
+        return True
+    except ImportError:
+        print("PyTorch installation issue detected, reinstalling...")
+        
+        if check_cuda_available():
+            print("CUDA detected, installing PyTorch with CUDA support...")
+            if install_pytorch_with_cuda():
+                print("Successfully installed PyTorch with CUDA")
+                return True
+            else:
+                print("CUDA installation failed, falling back to CPU")
+        
+        print("Installing PyTorch with CPU support...")
+        if install_pytorch_cpu():
+            print("Successfully installed PyTorch with CPU")
+            return True
+        else:
+            print("Failed to install PyTorch")
+            return False
 
 # Setup logging
 logging.basicConfig(
@@ -524,6 +580,11 @@ class UKLegislationDatasetCreator:
 
 def main():
     """Main function to create UK legislation datasets"""
+    # Setup PyTorch before creating datasets
+    if not setup_pytorch():
+        logger.error("Failed to setup PyTorch. Exiting.")
+        sys.exit(1)
+    
     creator = UKLegislationDatasetCreator()
     
     try:
