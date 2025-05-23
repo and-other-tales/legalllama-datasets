@@ -17,6 +17,7 @@ from typing import Optional
 # Import our custom modules
 from improved_downloader import ImprovedUKLegislationDownloader
 from dataset_creator import UKLegislationDatasetCreator
+from QA_pairs import UKLegislationQAGenerator
 
 # Setup logging
 logging.basicConfig(
@@ -36,12 +37,14 @@ class UKLegislationPipeline:
         dataset_dir: str = "uk_legislation_datasets",
         skip_download: bool = False,
         skip_dataset_creation: bool = False,
+        skip_qa_generation: bool = False,
         tokenizer_name: str = "microsoft/DialoGPT-medium"
     ):
         self.output_dir = output_dir
         self.dataset_dir = dataset_dir
         self.skip_download = skip_download
         self.skip_dataset_creation = skip_dataset_creation
+        self.skip_qa_generation = skip_qa_generation
         self.tokenizer_name = tokenizer_name
         
         # Initialize components
@@ -51,6 +54,7 @@ class UKLegislationPipeline:
             output_dir=dataset_dir,
             tokenizer_name=tokenizer_name
         )
+        self.qa_generator = UKLegislationQAGenerator()
     
     def run_download_phase(self) -> bool:
         """Run the legislation download phase"""
@@ -132,6 +136,53 @@ class UKLegislationPipeline:
             logger.error(f"Dataset creation phase failed: {e}")
             return False
     
+    def run_qa_generation_phase(self) -> bool:
+        """Run the Q&A generation phase"""
+        if self.skip_qa_generation:
+            logger.info("Skipping Q&A generation phase as requested")
+            return True
+        
+        logger.info("=== STARTING Q&A GENERATION PHASE ===")
+        
+        try:
+            # Check if source data exists
+            source_path = Path(self.output_dir)
+            if not source_path.exists():
+                logger.error(f"Source directory {source_path} does not exist")
+                return False
+            
+            # Check for text files
+            text_files = []
+            if (source_path / "text").exists():
+                text_files.extend(list((source_path / "text").glob("*.txt")))
+            text_files.extend(list(source_path.glob("*.txt")))
+            
+            if not text_files:
+                logger.error("No text files found for Q&A generation")
+                return False
+            
+            logger.info(f"Found {len(text_files)} text files for Q&A generation")
+            
+            # Generate Q&A pairs
+            qa_output_file = Path(self.dataset_dir) / "qa_pairs_dataset.json"
+            qa_pairs = self.qa_generator.process_all_legislation(
+                self.output_dir, 
+                str(qa_output_file)
+            )
+            
+            if not qa_pairs:
+                logger.warning("No Q&A pairs were generated")
+                return False
+            
+            logger.info("Q&A generation phase completed successfully!")
+            logger.info(f"Generated {len(qa_pairs)} Q&A pairs")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Q&A generation phase failed: {e}")
+            return False
+    
     def run_complete_pipeline(self) -> bool:
         """Run the complete pipeline from download to dataset creation"""
         logger.info("=== STARTING COMPLETE UK LEGISLATION PIPELINE ===")
@@ -146,6 +197,11 @@ class UKLegislationPipeline:
             # Phase 2: Create datasets
             if not self.run_dataset_creation_phase():
                 logger.error("Dataset creation phase failed")
+                return False
+            
+            # Phase 3: Generate Q&A pairs
+            if not self.run_qa_generation_phase():
+                logger.error("Q&A generation phase failed")
                 return False
             
             # Success
@@ -198,6 +254,17 @@ class UKLegislationPipeline:
                 for pf in parquet_files:
                     print(f"    - {pf.stem}")
             
+            # Check for Q&A pairs
+            qa_file = dataset_path / "qa_pairs_dataset.json"
+            if qa_file.exists():
+                try:
+                    import json
+                    with open(qa_file, 'r') as f:
+                        qa_data = json.load(f)
+                    print(f"  Q&A pairs: {len(qa_data)} pairs generated")
+                except:
+                    print(f"  Q&A pairs: Dataset file exists")
+            
             print(f"  Location: {dataset_path.absolute()}")
             
             # Available formats
@@ -219,7 +286,8 @@ class UKLegislationPipeline:
         print(f"\nNEXT STEPS:")
         print(f"  1. Review validation_report.json for dataset statistics")
         print(f"  2. Load datasets using: load_from_disk('{dataset_path}/final/uk_legislation_complete')")
-        print(f"  3. Fine-tune your language model with the created datasets")
+        print(f"  3. Use Q&A pairs from qa_pairs_dataset.json for supervised fine-tuning")
+        print(f"  4. Fine-tune your language model with the created datasets")
         
         print(f"{'='*60}\n")
 
@@ -262,6 +330,12 @@ Examples:
     )
     
     parser.add_argument(
+        '--skip-qa',
+        action='store_true',
+        help='Skip Q&A generation phase'
+    )
+    
+    parser.add_argument(
         '--tokenizer',
         default='microsoft/DialoGPT-medium',
         help='Tokenizer to use for text processing (default: microsoft/DialoGPT-medium)'
@@ -270,8 +344,8 @@ Examples:
     args = parser.parse_args()
     
     # Validate arguments
-    if args.skip_download and args.skip_datasets:
-        logger.error("Cannot skip both download and dataset creation phases")
+    if args.skip_download and args.skip_datasets and args.skip_qa:
+        logger.error("Cannot skip all phases")
         sys.exit(1)
     
     # Create pipeline
@@ -280,6 +354,7 @@ Examples:
         dataset_dir=args.dataset_dir,
         skip_download=args.skip_download,
         skip_dataset_creation=args.skip_datasets,
+        skip_qa_generation=args.skip_qa,
         tokenizer_name=args.tokenizer
     )
     
