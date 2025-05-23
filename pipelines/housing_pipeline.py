@@ -38,7 +38,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('housing_pipeline.log'),
+        logging.FileHandler('logs/housing_pipeline.log'),
         logging.StreamHandler(sys.stdout)
     ]
 )

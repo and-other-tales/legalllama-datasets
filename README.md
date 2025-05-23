@@ -1,32 +1,74 @@
-# UK Legislation Downloader & Dataset Creator
+# Legal LLaMA Datasets
 
-This project provides scripts to systematically download the complete UK legislation database from legislation.gov.uk and create comprehensive datasets suitable for LLM fine-tuning.
+A comprehensive legal data collection and processing framework for UK legal documents. This project provides unified pipelines to systematically collect UK legislation, case law, tax documentation, and housing-related legal content, then process it into datasets suitable for LLM training.
 
-## Features
+## 🚀 Features
 
-- **Comprehensive Coverage**: Downloads all UK legislation types including Acts, Statutory Instruments, and more
-- **Multiple Formats**: Downloads XML, HTML, and plain text versions
-- **Progress Tracking**: Saves progress and can resume interrupted downloads
-- **Verification**: Includes verification round to ensure all files downloaded correctly
-- **Rate Limiting**: Respectful downloading with appropriate delays
-- **Logging**: Detailed logging of all operations
-- **🆕 LLM Dataset Creation**: Creates complete datasets for fine-tuning language models
-- **🆕 Multiple Dataset Types**: Instruction-following, text completion, and Q&A datasets
-- **🆕 HuggingFace Integration**: Full compatibility with HuggingFace Datasets and Transformers
+- **Multi-source Data Collection**: UK legislation, case law (BAILII), HMRC tax documentation, housing law
+- **Government Content API Integration**: Fast, reliable data extraction using official UK Gov Content API
+- **Multiple Output Formats**: XML, HTML, text, structured JSON with comprehensive metadata
+- **Progress Tracking & Resume**: Robust state management with automatic resume capabilities
+- **Rate Limiting**: Respectful data collection with appropriate delays
+- **Comprehensive Logging**: Detailed operation logs in dedicated logs directory
+- **LLM Dataset Creation**: Generates instruction-following, text completion, and Q&A datasets
+- **HuggingFace Integration**: Full compatibility with HuggingFace Datasets and Transformers
+- **Unified CLI Interface**: Single entry point for all data collection pipelines
 
-## Installation
+## 📁 Project Structure
+
+```
+legal-llama-datasets/
+├── main.py                 # Main CLI entry point
+├── pipelines/              # Data collection pipelines
+│   ├── hmrc_scraper.py     # HMRC tax documentation scraper
+│   ├── bailii_scraper.py   # BAILII case law scraper
+│   ├── housing_pipeline.py # Housing legislation & case law
+│   ├── complete_pipeline.py# Complete data collection pipeline
+│   └── housing_QA_generator.py # Q&A pair generation
+├── utils/                  # Utility scripts and tools
+│   ├── dataset_creator.py  # LLM dataset creation
+│   ├── multi_database_ingestion.py # Database ingestion
+│   ├── uk_legislation_downloader.py # UK legislation collection
+│   └── improved_downloader.py # Enhanced downloaders
+├── tests/                  # Test suite
+├── logs/                   # Application logs (gitignored)
+├── generated/              # Generated datasets and content (gitignored)
+└── requirements.txt        # Python dependencies
+```
+
+## 🛠️ Installation
 
 1. Install Python dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-## Usage
+## 🎯 Quick Start
 
-### Complete Pipeline (Recommended)
+### Unified CLI Interface
+The main entry point provides access to all data collection pipelines:
+
 ```bash
-# Run the complete pipeline from download to dataset creation
-python complete_pipeline.py
+# Show all available pipelines
+python main.py --help
+
+# Collect HMRC tax documentation (with Content API)
+python main.py hmrc --max-documents 100 --output-dir generated/hmrc_data
+
+# Collect housing legislation and case law
+python main.py housing --max-documents 500
+
+# Scrape BAILII case law
+python main.py bailii --output-dir generated/case_law
+
+# Run complete data collection pipeline
+python main.py complete --max-documents 1000
+
+# Generate Q&A pairs from collected data
+python main.py qa-generator --input-dir generated/housing_legislation
+
+# Ingest data into databases
+python main.py db-ingestion --input-dir generated/
 ```
 
 ### Individual Components
