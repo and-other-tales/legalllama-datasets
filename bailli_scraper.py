@@ -6,6 +6,9 @@ from tqdm import tqdm
 import re
 import textwrap
 import os
+from pathlib import Path
+from typing import List, Dict, Optional
+import logging
 from anthropic import Anthropic
 
 BASE_URL = "https://www.bailii.org"
@@ -15,9 +18,43 @@ CHUNK_CHAR_LIMIT = 4000  # Adjust for token limits (4k characters ~ 1000 tokens)
 # Initialize Anthropic client
 client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
+logger = logging.getLogger(__name__)
+
+class BailliScraper:
+    def __init__(self, output_dir: str = "case_law"):
+        self.output_dir = Path(output_dir)
+        self.output_dir.mkdir(exist_ok=True)
+        
+        # Session for connection pooling
+        self.session = requests.Session()
+        self.session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        })
+    
+    def extract_case_content(self, html_content: str, url: str) -> Optional[Dict]:
+        """Extract case content from HTML"""
+        try:
+            soup = BeautifulSoup(html_content, "html.parser")
+            text = soup.get_text(separator="\n")
+            lines = text.splitlines()
+            
+            # Basic case information
+            case_data = {
+                'url': url,
+                'title': lines[0].strip() if lines else "Unknown Case",
+                'content': text.strip(),
+                'summary': ' '.join(lines[1:5]) if len(lines) > 1 else ""
+            }
+            
+            return case_data
+            
+        except Exception as e:
+            logger.error(f"Error extracting content from {url}: {e}")
+            return None
+
 uk_courts = [
     "UKSC", "EWCA/Civ", "EWCA/Crim", "EWHC/Admin", "EWHC/Ch", "EWHC/Comm",
-    "EWHC/Fam", "EWHC/QB", "EWHC/Tech", "UKUT", "UKFTT"
+    "EWHC/Fam", "EWHC/QB", "EWHC/Tech", "UKUT", "UKFTT", "EWMC", "EWCC"
 ]
 
 def get_case_links_for_court(court_code):
