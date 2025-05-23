@@ -16,9 +16,22 @@ from typing import Optional
 
 # Import our housing-specific modules
 from housing_legislation_downloader import HousingLegislationDownloader
-from housing_bailli_scraper import HousingBailliScraper
-from housing_QA_generator import HousingQAGenerator
-from dataset_creator import UKLegislationDatasetCreator
+
+# Conditional imports for modules that might require additional dependencies
+try:
+    from housing_bailii_scraper import HousingBailiiScraper
+except ImportError:
+    HousingBailiiScraper = None
+
+try:
+    from housing_QA_generator import HousingQAGenerator
+except ImportError:
+    HousingQAGenerator = None
+
+try:
+    from dataset_creator import UKLegislationDatasetCreator
+except ImportError:
+    UKLegislationDatasetCreator = None
 
 # Setup logging
 logging.basicConfig(
@@ -54,12 +67,12 @@ class HousingLawPipeline:
         
         # Initialize components
         self.legislation_downloader = HousingLegislationDownloader(legislation_dir)
-        self.case_law_scraper = HousingBailliScraper(case_law_dir)
-        self.qa_generator = HousingQAGenerator()
+        self.case_law_scraper = HousingBailiiScraper(case_law_dir) if HousingBailiiScraper else None
+        self.qa_generator = HousingQAGenerator() if HousingQAGenerator else None
         self.dataset_creator = UKLegislationDatasetCreator(
             source_dir=legislation_dir,
             output_dir=dataset_dir
-        )
+        ) if UKLegislationDatasetCreator else None
     
     def run_legislation_download_phase(self) -> bool:
         """Download housing-specific legislation"""
@@ -98,6 +111,10 @@ class HousingLawPipeline:
             logger.info("Skipping case law scraping phase as requested")
             return True
         
+        if not self.case_law_scraper:
+            logger.error("Case law scraper not available - missing dependencies")
+            return False
+        
         logger.info("=== STARTING HOUSING CASE LAW SCRAPING PHASE ===")
         
         try:
@@ -124,6 +141,10 @@ class HousingLawPipeline:
         if self.skip_qa_generation:
             logger.info("Skipping Q&A generation phase as requested")
             return True
+        
+        if not self.qa_generator:
+            logger.error("Q&A generator not available - missing dependencies")
+            return False
         
         logger.info("=== STARTING HOUSING Q&A GENERATION PHASE ===")
         
@@ -161,6 +182,10 @@ class HousingLawPipeline:
         if self.skip_dataset_creation:
             logger.info("Skipping dataset creation phase as requested")
             return True
+        
+        if not self.dataset_creator:
+            logger.error("Dataset creator not available - missing dependencies")
+            return False
         
         logger.info("=== STARTING HOUSING DATASET CREATION PHASE ===")
         

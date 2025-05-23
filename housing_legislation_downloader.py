@@ -19,6 +19,10 @@ class HousingLegislationDownloader(ImprovedUKLegislationDownloader):
     def __init__(self, output_dir: str = "housing_legislation"):
         super().__init__(output_dir)
         
+        # Initialize URL tracking sets
+        self.discovered_urls = set()
+        self.downloaded_urls = set()
+        
         # Housing-specific keywords for filtering
         self.housing_keywords = {
             'primary_terms': [

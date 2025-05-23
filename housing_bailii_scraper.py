@@ -10,11 +10,11 @@ import time
 import logging
 from pathlib import Path
 from typing import List, Dict, Optional, Set
-from bailli_scraper import BailliScraper
+from bailii_scraper import BailiiScraper
 
 logger = logging.getLogger(__name__)
 
-class HousingBailliScraper(BailliScraper):
+class HousingBailiiScraper(BailiiScraper):
     def __init__(self, output_dir: str = "housing_case_law"):
         super().__init__(output_dir)
         
@@ -354,7 +354,7 @@ def main():
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
     
-    scraper = HousingBailliScraper(args.output_dir)
+    scraper = HousingBailiiScraper(args.output_dir)
     
     try:
         if args.discover_only:

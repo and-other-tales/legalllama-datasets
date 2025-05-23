@@ -47,7 +47,7 @@ UK_DATABASES = [
 
 logger = logging.getLogger(__name__)
 
-class BailliScraper:
+class BailiiScraper:
     def __init__(self, output_dir: str = "case_law", max_depth: int = 3, delay: float = 1.0):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
@@ -249,7 +249,7 @@ def chunk_text(text, max_len=CHUNK_CHAR_LIMIT):
 
 def main():
     """Main execution function for comprehensive BAILII scraping"""
-    scraper = BailliScraper(max_depth=3, delay=1.0)
+    scraper = BailiiScraper(max_depth=3, delay=1.0)
     
     logger.info("Starting comprehensive BAILII case discovery...")
     
